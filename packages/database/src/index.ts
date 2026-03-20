@@ -1,4 +1,3 @@
-import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
 import {
   loadApiEnvironment,
@@ -64,9 +63,10 @@ function buildConnectionSettings(env: {
 let prismaClient: PrismaClient | undefined;
 
 export function createPrismaClient() {
-  const { DATABASE_URL } = loadSharedEnvironment();
-  const adapter = new PrismaPg({ connectionString: DATABASE_URL });
-  return new PrismaClient({ adapter, log: ["warn", "error"] });
+  loadSharedEnvironment();
+  return new PrismaClient({
+    log: ["warn", "error"]
+  });
 }
 
 export function getPrismaClient() {
