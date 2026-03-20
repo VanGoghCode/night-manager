@@ -16,6 +16,8 @@ jobs:
         with:
           node-version: 20
           cache: pnpm
+      - name: Prepare CI environment
+        run: cp .env.example .env
       - name: Install dependencies
         run: pnpm install --frozen-lockfile=false
       - name: Generate Prisma Client
