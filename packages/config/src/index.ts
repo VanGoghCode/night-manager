@@ -5,17 +5,40 @@ import { z } from "zod";
 
 let envLoaded = false;
 
+function findWorkspaceRoot(startDir: string): string {
+  let currentDir = startDir;
+
+  while (true) {
+    const packageJsonPath = path.join(currentDir, "package.json");
+    const pnpmWorkspacePath = path.join(currentDir, "pnpm-workspace.yaml");
+
+    if (fs.existsSync(packageJsonPath) && fs.existsSync(pnpmWorkspacePath)) {
+      return currentDir;
+    }
+
+    const parentDir = path.dirname(currentDir);
+    if (parentDir === currentDir) {
+      return startDir;
+    }
+
+    currentDir = parentDir;
+  }
+}
+
 function loadRootEnvironmentFiles(): void {
   if (envLoaded) {
     return;
   }
 
-  const rootDir = process.cwd();
-  const envPath = path.join(rootDir, ".env");
-  const envLocalPath = path.join(rootDir, ".env.local");
+  const workspaceRoot = findWorkspaceRoot(process.cwd());
+  const envPath = path.join(workspaceRoot, ".env");
+  const envExamplePath = path.join(workspaceRoot, ".env.example");
+  const envLocalPath = path.join(workspaceRoot, ".env.local");
 
   if (fs.existsSync(envPath)) {
     dotenv.config({ path: envPath, override: false });
+  } else if (fs.existsSync(envExamplePath)) {
+    dotenv.config({ path: envExamplePath, override: false });
   }
 
   if (fs.existsSync(envLocalPath)) {
