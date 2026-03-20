@@ -1,0 +1,25 @@
+{
+  "name": "night-manager",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@10.7.0",
+  "scripts": {
+    "build": "pnpm -r build",
+    "db:generate": "pnpm --filter @night-manager/database run db:generate",
+    "db:migrate": "pnpm --filter @night-manager/database run db:migrate",
+    "db:deploy": "pnpm --filter @night-manager/database run db:deploy",
+    "db:seed": "pnpm --filter @night-manager/database run db:seed",
+    "dev": "concurrently -n web,api,webhook,agent -c blue,green,magenta,yellow \"pnpm dev:web\" \"pnpm dev:api\" \"pnpm dev:webhook\" \"pnpm dev:agent\"",
+    "dev:web": "pnpm --filter @night-manager/web-dashboard dev",
+    "dev:api": "pnpm --filter @night-manager/api dev",
+    "dev:webhook": "pnpm --filter @night-manager/github-webhook dev",
+    "dev:agent": "python apps/agent-runtime/runtime/main.py",
+    "lint": "pnpm -r lint",
+    "test": "pnpm -r test",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "typescript": "^5.8.3"
+  }
+}

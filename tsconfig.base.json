@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2022", "DOM"],
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "declaration": true,
+    "baseUrl": ".",
+    "paths": {
+      "@night-manager/config": ["packages/config/src/index.ts"],
+      "@night-manager/database": ["packages/database/src/index.ts"],
+      "@night-manager/auth": ["packages/auth/src/index.ts"],
+      "@night-manager/role-loader": ["packages/role-loader/src/index.ts"],
+      "@night-manager/workflow-engine": ["packages/workflow-engine/src/index.ts"],
+      "@night-manager/branch-rules": ["packages/branch-rules/src/index.ts"],
+      "@night-manager/audit-sdk": ["packages/audit-sdk/src/index.ts"],
+      "@night-manager/ui": ["packages/ui/src/index.tsx"]
+    }
+  }
+}

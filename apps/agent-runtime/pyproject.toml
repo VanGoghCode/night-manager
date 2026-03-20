@@ -1,0 +1,6 @@
+[project]
+name = "night-manager-agent-runtime"
+version = "0.1.0"
+description = "Night Manager worker runtime MVP"
+requires-python = ">=3.12"
+dependencies = []

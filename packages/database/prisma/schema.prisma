@@ -1,0 +1,461 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserType {
+  HUMAN
+  AI
+  SYSTEM
+}
+
+enum RepositoryProvider {
+  GITHUB
+}
+
+enum EnvironmentType {
+  DEVELOPMENT
+  STAGING
+  PRODUCTION
+}
+
+enum TicketType {
+  FEATURE
+  BUG
+  CHORE
+  HOTFIX
+  RELEASE
+}
+
+enum TicketStatus {
+  DRAFT
+  READY
+  IN_PROGRESS
+  IN_REVIEW
+  QA
+  BLOCKED
+  DONE
+  CANCELED
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum ExecutorType {
+  HUMAN
+  AI
+  HYBRID
+}
+
+enum DependencyType {
+  BLOCKS
+  RELATED_TO
+}
+
+enum AssignmentStatus {
+  PENDING
+  ACTIVE
+  COMPLETED
+  CANCELED
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELED
+}
+
+enum AuditActorType {
+  HUMAN
+  AI
+  SYSTEM
+}
+
+enum AgentRunStatus {
+  QUEUED
+  RUNNING
+  SUCCEEDED
+  FAILED
+  CANCELED
+}
+
+model User {
+  id                 String               @id @default(cuid())
+  email              String               @unique
+  displayName        String
+  userType           UserType             @default(HUMAN)
+  isActive           Boolean              @default(true)
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  sessions           Session[]
+  humanOwnedTickets  Ticket[]             @relation("TicketHumanOwner")
+  createdTickets     Ticket[]             @relation("TicketCreator")
+  assignedWork       Assignment[]         @relation("AssignmentUser")
+  assignedBy         Assignment[]         @relation("AssignmentAssignedBy")
+  requestedApprovals Approval[]           @relation("ApprovalRequestedBy")
+  actedApprovals     Approval[]           @relation("ApprovalApprover")
+  auditEvents        AuditEvent[]         @relation("AuditActorUser")
+  authoredRoleFiles  RoleMarkdownFile[]   @relation("RoleMarkdownFileAuthor")
+
+  @@map("users")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique
+  metadata  Json?
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model Organization {
+  id           String        @id @default(cuid())
+  name         String
+  slug         String        @unique
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  teams        Team[]
+  modules      Module[]
+  repositories Repository[]
+  environments Environment[]
+  tickets      Ticket[]
+  workflows    Workflow[]
+  approvals    Approval[]
+  auditEvents  AuditEvent[]
+  agentRuns    AgentRun[]
+  roleProfiles RoleProfile[]
+
+  @@map("organizations")
+}
+
+model Team {
+  id             String       @id @default(cuid())
+  organizationId String
+  name           String
+  slug           String
+  description    String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  modules        Module[]
+  tickets        Ticket[]
+
+  @@unique([organizationId, slug])
+  @@index([organizationId])
+  @@map("teams")
+}
+
+model Module {
+  id             String       @id @default(cuid())
+  organizationId String
+  teamId         String?
+  name           String
+  slug           String
+  description    String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  team           Team?        @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  repositories   Repository[]
+  tickets        Ticket[]
+
+  @@unique([organizationId, slug])
+  @@index([organizationId])
+  @@index([teamId])
+  @@map("modules")
+}
+
+model Repository {
+  id             String             @id @default(cuid())
+  organizationId String
+  moduleId       String?
+  name           String
+  slug           String
+  provider       RepositoryProvider @default(GITHUB)
+  externalId     String?
+  defaultBranch  String             @default("main")
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  organization   Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  module         Module?            @relation(fields: [moduleId], references: [id], onDelete: SetNull)
+  tickets        Ticket[]
+
+  @@unique([organizationId, slug])
+  @@index([organizationId])
+  @@index([moduleId])
+  @@map("repositories")
+}
+
+model Environment {
+  id              String          @id @default(cuid())
+  organizationId  String
+  name            String
+  slug            String
+  environmentType EnvironmentType
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  organization    Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  tickets         Ticket[]
+
+  @@unique([organizationId, slug])
+  @@index([organizationId])
+  @@map("environments")
+}
+
+model Ticket {
+  id                   String             @id
+  organizationId       String
+  teamId               String?
+  moduleId             String?
+  repoId               String?
+  environmentId        String?
+  workflowId           String?
+  workflowStateId      String?
+  title                String
+  description          String?
+  type                 TicketType
+  status               TicketStatus
+  priority             TicketPriority
+  humanOwnerId         String?
+  assignedRole         String?
+  assignedExecutorType ExecutorType
+  metadata             Json               @default("{}")
+  createdById          String?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  organization         Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  team                 Team?              @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  module               Module?            @relation(fields: [moduleId], references: [id], onDelete: SetNull)
+  repository           Repository?        @relation(fields: [repoId], references: [id], onDelete: SetNull)
+  environment          Environment?       @relation(fields: [environmentId], references: [id], onDelete: SetNull)
+  workflow             Workflow?          @relation(fields: [workflowId], references: [id], onDelete: SetNull)
+  workflowState        WorkflowState?     @relation(fields: [workflowStateId], references: [id], onDelete: SetNull)
+  humanOwner           User?              @relation("TicketHumanOwner", fields: [humanOwnerId], references: [id], onDelete: SetNull)
+  createdBy            User?              @relation("TicketCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  dependencies         TicketDependency[] @relation("TicketDependencies")
+  blockedBy            TicketDependency[] @relation("TicketBlockedBy")
+  assignments          Assignment[]
+  approvals            Approval[]
+  auditEvents          AuditEvent[]
+  agentRuns            AgentRun[]
+
+  @@index([organizationId])
+  @@index([moduleId])
+  @@index([repoId])
+  @@index([humanOwnerId])
+  @@index([workflowId])
+  @@index([workflowStateId])
+  @@map("tickets")
+}
+
+model TicketDependency {
+  id                String         @id @default(cuid())
+  ticketId          String
+  dependsOnTicketId String
+  dependencyType    DependencyType @default(BLOCKS)
+  createdAt         DateTime       @default(now())
+  ticket            Ticket         @relation("TicketDependencies", fields: [ticketId], references: [id], onDelete: Cascade)
+  dependsOnTicket   Ticket         @relation("TicketBlockedBy", fields: [dependsOnTicketId], references: [id], onDelete: Cascade)
+
+  @@unique([ticketId, dependsOnTicketId])
+  @@index([dependsOnTicketId])
+  @@map("ticket_dependencies")
+}
+
+model Assignment {
+  id           String           @id @default(cuid())
+  ticketId     String
+  assignedRole String?
+  executorType ExecutorType
+  userId       String?
+  assignedById String?
+  status       AssignmentStatus @default(PENDING)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  ticket       Ticket           @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  user         User?            @relation("AssignmentUser", fields: [userId], references: [id], onDelete: SetNull)
+  assignedBy   User?            @relation("AssignmentAssignedBy", fields: [assignedById], references: [id], onDelete: SetNull)
+  agentRuns    AgentRun[]
+
+  @@index([ticketId])
+  @@index([userId])
+  @@map("assignments")
+}
+
+model Workflow {
+  id             String               @id @default(cuid())
+  organizationId String
+  name           String
+  slug           String
+  isDefault      Boolean              @default(false)
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+  organization   Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  states         WorkflowState[]
+  transitions    WorkflowTransition[]
+  tickets        Ticket[]
+
+  @@unique([organizationId, slug])
+  @@index([organizationId])
+  @@map("workflows")
+}
+
+model WorkflowState {
+  id                  String               @id @default(cuid())
+  workflowId          String
+  key                 String
+  name                String
+  sortOrder           Int
+  stateCategory       String?
+  isInitial           Boolean              @default(false)
+  isTerminal          Boolean              @default(false)
+  createdAt           DateTime             @default(now())
+  workflow            Workflow             @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  outgoingTransitions WorkflowTransition[] @relation("WorkflowTransitionFrom")
+  incomingTransitions WorkflowTransition[] @relation("WorkflowTransitionTo")
+  tickets             Ticket[]
+
+  @@unique([workflowId, key])
+  @@index([workflowId, sortOrder])
+  @@map("workflow_states")
+}
+
+model WorkflowTransition {
+  id               String           @id @default(cuid())
+  workflowId       String
+  fromStateId      String
+  toStateId        String
+  name             String
+  requiresApproval Boolean          @default(false)
+  createdAt        DateTime         @default(now())
+  workflow         Workflow         @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  fromState        WorkflowState    @relation("WorkflowTransitionFrom", fields: [fromStateId], references: [id], onDelete: Cascade)
+  toState          WorkflowState    @relation("WorkflowTransitionTo", fields: [toStateId], references: [id], onDelete: Cascade)
+  approvals        Approval[]
+
+  @@unique([workflowId, fromStateId, toStateId])
+  @@index([workflowId])
+  @@map("workflow_transitions")
+}
+
+model Approval {
+  id                   String              @id @default(cuid())
+  organizationId       String
+  ticketId             String?
+  workflowTransitionId String?
+  requestedById        String?
+  approverUserId       String?
+  status               ApprovalStatus      @default(PENDING)
+  notes                String?
+  decisionAt           DateTime?
+  createdAt            DateTime            @default(now())
+  organization         Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  ticket               Ticket?             @relation(fields: [ticketId], references: [id], onDelete: SetNull)
+  workflowTransition   WorkflowTransition? @relation(fields: [workflowTransitionId], references: [id], onDelete: SetNull)
+  requestedBy          User?               @relation("ApprovalRequestedBy", fields: [requestedById], references: [id], onDelete: SetNull)
+  approverUser         User?               @relation("ApprovalApprover", fields: [approverUserId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+  @@index([ticketId])
+  @@map("approvals")
+}
+
+model AuditEvent {
+  id             String         @id @default(cuid())
+  organizationId String?
+  actorUserId    String?
+  actorType      AuditActorType
+  action         String
+  resourceType   String
+  resourceId     String?
+  ticketId       String?
+  payload        Json           @default("{}")
+  createdAt      DateTime       @default(now())
+  organization   Organization?  @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  actorUser      User?          @relation("AuditActorUser", fields: [actorUserId], references: [id], onDelete: SetNull)
+  ticket         Ticket?        @relation(fields: [ticketId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, createdAt])
+  @@index([resourceType, resourceId])
+  @@index([ticketId])
+  @@map("audit_events")
+}
+
+model AgentRun {
+  id                 String            @id @default(cuid())
+  organizationId     String
+  ticketId           String?
+  assignmentId       String?
+  roleProfileId      String?
+  roleMarkdownFileId String?
+  status             AgentRunStatus    @default(QUEUED)
+  executorType       ExecutorType      @default(AI)
+  metadata           Json              @default("{}")
+  startedAt          DateTime?
+  completedAt        DateTime?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  organization       Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  ticket             Ticket?           @relation(fields: [ticketId], references: [id], onDelete: SetNull)
+  assignment         Assignment?       @relation(fields: [assignmentId], references: [id], onDelete: SetNull)
+  roleProfile        RoleProfile?      @relation(fields: [roleProfileId], references: [id], onDelete: SetNull)
+  roleMarkdownFile   RoleMarkdownFile? @relation(fields: [roleMarkdownFileId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+  @@index([ticketId])
+  @@index([assignmentId])
+  @@map("agent_runs")
+}
+
+model RoleProfile {
+  id                  String             @id @default(cuid())
+  organizationId      String
+  slug                String
+  title               String
+  description         String?
+  defaultExecutorType ExecutorType       @default(AI)
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+  organization        Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  markdownFiles       RoleMarkdownFile[]
+  agentRuns           AgentRun[]
+
+  @@unique([organizationId, slug])
+  @@index([organizationId])
+  @@map("role_profiles")
+}
+
+model RoleMarkdownFile {
+  id                 String            @id @default(cuid())
+  roleProfileId      String
+  version            Int
+  fileName           String
+  content            String
+  checksum           String
+  isActive           Boolean           @default(false)
+  createdById        String?
+  createdAt          DateTime          @default(now())
+  publishedAt        DateTime?
+  roleProfile        RoleProfile       @relation(fields: [roleProfileId], references: [id], onDelete: Cascade)
+  createdBy          User?             @relation("RoleMarkdownFileAuthor", fields: [createdById], references: [id], onDelete: SetNull)
+  agentRuns          AgentRun[]
+
+  @@unique([roleProfileId, version])
+  @@index([roleProfileId, isActive])
+  @@map("role_markdown_files")
+}
