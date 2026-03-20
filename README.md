@@ -44,6 +44,33 @@ Night Manager is an AI-native software delivery operating system. This monorepo 
 - GitHub webhook health: `http://localhost:3002/health`
 - Worker health: `http://localhost:3003/health`
 
+## MVP Authentication
+
+The MVP authentication flow uses:
+- password-based login against seeded local users
+- JWT access tokens
+- append-only session records in PostgreSQL
+- role-based route protection in the API
+- a protected dashboard route in the web app
+
+Seeded local credentials:
+- `admin@nightmanager.local` / `NightManager123!`
+- `pm@nightmanager.local` / `NightManager123!`
+- `engineer@nightmanager.local` / `NightManager123!`
+- `reviewer@nightmanager.local` / `NightManager123!`
+- `qa@nightmanager.local` / `NightManager123!`
+- `release@nightmanager.local` / `NightManager123!`
+
+Relevant routes:
+- `POST /auth/login`
+- `GET /auth/me`
+- `POST /auth/logout`
+- `GET /tickets`
+- `POST /tickets`
+- `PATCH /tickets/:ticketId`
+- `GET /admin/policies`
+- `GET /admin/role-profiles`
+
 ## Database Workflow
 
 The MVP database layer uses Prisma consistently for schema definition, migration generation, seeding, and runtime access.

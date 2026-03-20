@@ -13,6 +13,15 @@ enum UserType {
   SYSTEM
 }
 
+enum PlatformRole {
+  admin
+  product_manager
+  engineer
+  reviewer
+  qa
+  release_manager
+}
+
 enum RepositoryProvider {
   GITHUB
 }
@@ -93,7 +102,10 @@ model User {
   email              String             @unique
   displayName        String
   userType           UserType           @default(HUMAN)
+  role               PlatformRole       @default(engineer)
+  passwordHash       String?
   isActive           Boolean            @default(true)
+  lastLoginAt        DateTime?
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
   sessions           Session[]

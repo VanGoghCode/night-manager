@@ -2,13 +2,15 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import bcrypt from "bcryptjs";
 import {
+  AgentRunStatus,
   ApprovalStatus,
   AssignmentStatus,
-  AgentRunStatus,
   AuditActorType,
   EnvironmentType,
   ExecutorType,
+  PlatformRole,
   PrismaClient,
   RepositoryProvider,
   TicketPriority,
@@ -19,6 +21,14 @@ import {
 
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(currentDir, "../../..");
+const DEFAULT_PASSWORD = "NightManager123!";
+const prisma = new PrismaClient();
+
+interface SeedHumanUser {
+  email: string;
+  displayName: string;
+  role: PlatformRole;
+}
 
 function loadEnvFile(filePath: string, override = false) {
   if (!fs.existsSync(filePath)) {
@@ -42,8 +52,6 @@ function loadEnvFile(filePath: string, override = false) {
 
 loadEnvFile(path.join(repoRoot, ".env"));
 loadEnvFile(path.join(repoRoot, ".env.local"), true);
-
-const prisma = new PrismaClient();
 
 function checksum(content: string): string {
   return crypto.createHash("sha256").update(content).digest("hex");
@@ -72,6 +80,29 @@ async function ensureAssignment(ticketId: string, assignedRole: string, assigned
   });
 }
 
+async function upsertHumanUser(user: SeedHumanUser) {
+  const passwordHash = await bcrypt.hash(DEFAULT_PASSWORD, 10);
+
+  return prisma.user.upsert({
+    where: { email: user.email },
+    update: {
+      displayName: user.displayName,
+      role: user.role,
+      userType: UserType.HUMAN,
+      passwordHash,
+      isActive: true
+    },
+    create: {
+      email: user.email,
+      displayName: user.displayName,
+      role: user.role,
+      userType: UserType.HUMAN,
+      passwordHash,
+      isActive: true
+    }
+  });
+}
+
 async function main() {
   const organization = await prisma.organization.upsert({
     where: { slug: "night-manager-labs" },
@@ -95,23 +126,57 @@ async function main() {
     }
   });
 
-  const humanOwner = await prisma.user.upsert({
-    where: { email: "owner@nightmanager.local" },
-    update: { displayName: "Night Manager Owner" },
-    create: {
-      email: "owner@nightmanager.local",
-      displayName: "Night Manager Owner",
-      userType: UserType.HUMAN
-    }
-  });
+  const seededUsers = await Promise.all([
+    upsertHumanUser({
+      email: "admin@nightmanager.local",
+      displayName: "Night Manager Admin",
+      role: PlatformRole.admin
+    }),
+    upsertHumanUser({
+      email: "pm@nightmanager.local",
+      displayName: "Night Manager Product Manager",
+      role: PlatformRole.product_manager
+    }),
+    upsertHumanUser({
+      email: "engineer@nightmanager.local",
+      displayName: "Night Manager Engineer",
+      role: PlatformRole.engineer
+    }),
+    upsertHumanUser({
+      email: "reviewer@nightmanager.local",
+      displayName: "Night Manager Reviewer",
+      role: PlatformRole.reviewer
+    }),
+    upsertHumanUser({
+      email: "qa@nightmanager.local",
+      displayName: "Night Manager QA",
+      role: PlatformRole.qa
+    }),
+    upsertHumanUser({
+      email: "release@nightmanager.local",
+      displayName: "Night Manager Release Manager",
+      role: PlatformRole.release_manager
+    })
+  ]);
+
+  const adminUser = seededUsers[0];
+  const productManagerUser = seededUsers[1];
 
   const aiProjectManager = await prisma.user.upsert({
     where: { email: "ai-pm@nightmanager.local" },
-    update: { displayName: "AI Project Manager" },
+    update: {
+      displayName: "AI Project Manager",
+      role: PlatformRole.product_manager,
+      userType: UserType.AI,
+      passwordHash: null,
+      isActive: true
+    },
     create: {
       email: "ai-pm@nightmanager.local",
       displayName: "AI Project Manager",
-      userType: UserType.AI
+      role: PlatformRole.product_manager,
+      userType: UserType.AI,
+      isActive: true
     }
   });
 
@@ -349,7 +414,7 @@ async function main() {
       content: markdownContent,
       checksum: checksum(markdownContent),
       isActive: true,
-      createdById: humanOwner.id,
+      createdById: adminUser.id,
       publishedAt: new Date()
     }
   });
@@ -376,7 +441,7 @@ async function main() {
       type: TicketType.FEATURE,
       status: TicketStatus.READY,
       priority: TicketPriority.HIGH,
-      humanOwnerId: humanOwner.id,
+      humanOwnerId: adminUser.id,
       assignedRole: roleProfile.slug,
       assignedExecutorType: ExecutorType.AI,
       createdById: aiProjectManager.id,
@@ -398,7 +463,7 @@ async function main() {
       ticketId: ticket.id,
       workflowTransitionId: reviewTransition.id,
       requestedById: aiProjectManager.id,
-      approverUserId: humanOwner.id,
+      approverUserId: adminUser.id,
       status: ApprovalStatus.PENDING,
       notes: "Awaiting human review approval"
     }
@@ -439,13 +504,24 @@ async function main() {
     }
   });
 
-  console.log(JSON.stringify({
-    organization: organization.slug,
-    team: team.slug,
-    module: moduleRecord.slug,
-    repository: repository.slug,
-    ticket: ticket.id
-  }, null, 2));
+  console.log(
+    JSON.stringify(
+      {
+        organization: organization.slug,
+        team: team.slug,
+        module: moduleRecord.slug,
+        repository: repository.slug,
+        ticket: ticket.id,
+        samplePassword: DEFAULT_PASSWORD,
+        sampleUsers: seededUsers.map((user) => ({
+          email: user.email,
+          role: user.role
+        }))
+      },
+      null,
+      2
+    )
+  );
 }
 
 main()

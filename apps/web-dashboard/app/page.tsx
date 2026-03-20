@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { loadWebPublicEnvironment } from "@night-manager/config";
 import { loadRoleDefinition } from "@night-manager/role-loader";
 
@@ -19,6 +20,21 @@ export default function HomePage() {
           release, and maintain software inside a policy-driven zero-trust
           platform.
         </p>
+
+        <div className="flex flex-wrap gap-3">
+          <Link
+            className="rounded-2xl bg-sky-400 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:bg-sky-300"
+            href="/login"
+          >
+            Login to dashboard
+          </Link>
+          <Link
+            className="rounded-2xl border border-slate-700 px-4 py-3 text-sm font-medium text-slate-200 transition hover:border-slate-500 hover:text-white"
+            href="/dashboard"
+          >
+            View protected dashboard
+          </Link>
+        </div>
       </section>
 
       <section className="grid gap-4 md:grid-cols-4">
