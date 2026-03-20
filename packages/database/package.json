@@ -7,6 +7,7 @@
   "types": "src/index.ts",
   "dependencies": {
     "@night-manager/config": "workspace:*",
+    "@night-manager/role-loader": "workspace:*",
     "@prisma/client": "6.19.2",
     "bcryptjs": "^3.0.3",
     "zod": "^4.1.11"
@@ -17,6 +18,7 @@
     "db:migrate": "prisma migrate dev --config prisma.config.ts",
     "db:deploy": "prisma migrate deploy --config prisma.config.ts",
     "db:seed": "tsx prisma/seed.ts",
+    "roles:sync": "tsx src/sync-role-markdown.ts",
     "lint": "tsc --noEmit -p tsconfig.json",
     "test": "node -e \"console.log('database: no tests yet')\"",
     "typecheck": "tsc --noEmit -p tsconfig.json"

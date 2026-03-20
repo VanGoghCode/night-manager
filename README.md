@@ -33,7 +33,9 @@ Night Manager is an AI-native software delivery operating system. This monorepo 
    - `pnpm db:migrate`
 7. Seed sample data:
    - `pnpm db:seed`
-8. Start all apps in development mode:
+8. Sync role markdown files into the database:
+   - `pnpm roles:sync`
+9. Start all apps in development mode:
    - `make dev`
 
 ## Local Services
@@ -80,8 +82,26 @@ Useful commands:
 - `pnpm db:migrate`: create or apply local migrations in development
 - `pnpm db:deploy`: apply checked-in migrations
 - `pnpm db:seed`: load the sample organization, team, module, workflow, role profile, and ticket
+- `pnpm roles:sync`: sync role markdown files from `roles/` into `role_profiles` and `role_markdown_files`
 
 The initial checked-in migration lives in `packages/database/prisma/migrations`.
+
+## Role Instruction System
+
+Role instruction files live in `roles/` and are loaded by the shared `@night-manager/role-loader` package.
+
+The loader:
+- reads the role markdown files from disk
+- parses required section headings such as mission, allowed actions, and definition of done
+- renders trusted HTML for dashboard viewing
+- powers database synchronization and future agent-runtime role consumption
+
+API endpoints:
+- `GET /roles`: list synced role profiles and active markdown metadata
+- `GET /roles/:slug`: fetch a role profile plus raw markdown, rendered HTML, parsed sections, and version history
+
+Dashboard route:
+- `/dashboard/roles`: protected admin-only role management view
 
 ## Environment Variables
 

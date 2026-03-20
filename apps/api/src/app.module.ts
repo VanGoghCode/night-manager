@@ -8,17 +8,20 @@ import { AuthService } from "./auth/auth.service";
 import { RolesGuard } from "./common/guards/roles.guard";
 import { JwtAuthGuard } from "./common/guards/jwt-auth.guard";
 import { PrismaService } from "./prisma.service";
+import { RolesController } from "./roles/roles.controller";
+import { RolesService } from "./roles/roles.service";
 import { TicketsController } from "./tickets/tickets.controller";
 import { TicketsService } from "./tickets/tickets.service";
 
 @Module({
-  controllers: [AuthController, TicketsController, AdminController],
+  controllers: [AuthController, TicketsController, AdminController, RolesController],
   providers: [
     PrismaService,
     AuditTrailService,
     AuthService,
     TicketsService,
     AdminService,
+    RolesService,
     JwtAuthGuard,
     RolesGuard,
     {

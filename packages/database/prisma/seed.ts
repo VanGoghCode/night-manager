@@ -18,6 +18,7 @@ import {
   TicketType,
   UserType
 } from "@prisma/client";
+import { syncRoleMarkdownCatalog } from "../src/role-markdown-sync";
 
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(currentDir, "../../..");
@@ -52,10 +53,6 @@ function loadEnvFile(filePath: string, override = false) {
 
 loadEnvFile(path.join(repoRoot, ".env"));
 loadEnvFile(path.join(repoRoot, ".env.local"), true);
-
-function checksum(content: string): string {
-  return crypto.createHash("sha256").update(content).digest("hex");
-}
 
 async function ensureAssignment(ticketId: string, assignedRole: string, assignedById: string) {
   const existing = await prisma.assignment.findFirst({
@@ -376,46 +373,28 @@ async function main() {
     }
   });
 
-  const roleProfile = await prisma.roleProfile.upsert({
+  await syncRoleMarkdownCatalog(prisma, {
+    organizationId: organization.id,
+    createdById: adminUser.id,
+    startDir: repoRoot
+  });
+
+  const roleProfile = await prisma.roleProfile.findUniqueOrThrow({
     where: {
       organizationId_slug: {
         organizationId: organization.id,
         slug: "ai-project-manager"
       }
-    },
-    update: { title: "AI Project Manager" },
-    create: {
-      organizationId: organization.id,
-      slug: "ai-project-manager",
-      title: "AI Project Manager",
-      description: "Generates and manages Night Manager tickets",
-      defaultExecutorType: ExecutorType.AI
     }
   });
 
-  const markdownContent = `# AI Project Manager\n\n## Scope\n- Generate and refine tickets\n- Respect explicit human overrides\n`;
-  const roleMarkdown = await prisma.roleMarkdownFile.upsert({
+  const roleMarkdown = await prisma.roleMarkdownFile.findFirstOrThrow({
     where: {
-      roleProfileId_version: {
-        roleProfileId: roleProfile.id,
-        version: 1
-      }
-    },
-    update: {
-      content: markdownContent,
-      checksum: checksum(markdownContent),
-      isActive: true,
-      publishedAt: new Date()
-    },
-    create: {
       roleProfileId: roleProfile.id,
-      version: 1,
-      fileName: "ai-project-manager.md",
-      content: markdownContent,
-      checksum: checksum(markdownContent),
-      isActive: true,
-      createdById: adminUser.id,
-      publishedAt: new Date()
+      isActive: true
+    },
+    orderBy: {
+      version: "desc"
     }
   });
 
@@ -512,6 +491,16 @@ async function main() {
         module: moduleRecord.slug,
         repository: repository.slug,
         ticket: ticket.id,
+        roles: (
+          await prisma.roleProfile.findMany({
+            orderBy: {
+              slug: "asc"
+            },
+            select: {
+              slug: true
+            }
+          })
+        ).map((role) => role.slug),
         samplePassword: DEFAULT_PASSWORD,
         sampleUsers: seededUsers.map((user) => ({
           email: user.email,

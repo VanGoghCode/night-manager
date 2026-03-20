@@ -79,6 +79,7 @@ export function getPrismaClient() {
 
 export { PrismaClient } from "@prisma/client";
 export * from "@prisma/client";
+export * from "./role-markdown-sync";
 
 export function getApiInfrastructureConnections(): LocalInfrastructureConnections {
   return buildConnectionSettings(loadApiEnvironment());

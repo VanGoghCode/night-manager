@@ -18,6 +18,7 @@
     "@night-manager/branch-rules": "workspace:*",
     "@night-manager/config": "workspace:*",
     "@night-manager/database": "workspace:*",
+    "@night-manager/role-loader": "workspace:*",
     "@night-manager/workflow-engine": "workspace:*",
     "bcryptjs": "^3.0.3",
     "jsonwebtoken": "^9.0.3",

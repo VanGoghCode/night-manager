@@ -41,6 +41,9 @@ importers:
       '@night-manager/database':
         specifier: workspace:*
         version: link:../../packages/database
+      '@night-manager/role-loader':
+        specifier: workspace:*
+        version: link:../../packages/role-loader
       '@night-manager/workflow-engine':
         specifier: workspace:*
         version: link:../../packages/workflow-engine
@@ -201,6 +204,9 @@ importers:
       '@night-manager/config':
         specifier: workspace:*
         version: link:../config
+      '@night-manager/role-loader':
+        specifier: workspace:*
+        version: link:../role-loader
       '@prisma/client':
         specifier: 6.19.2
         version: 6.19.2(prisma@6.19.2(typescript@5.9.3))(typescript@5.9.3)
@@ -226,6 +232,9 @@ importers:
 
   packages/role-loader:
     devDependencies:
+      '@types/node':
+        specifier: ^24.0.0
+        version: 24.12.0
       typescript:
         specifier: ^5.8.3
         version: 5.9.3

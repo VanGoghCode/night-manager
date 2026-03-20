@@ -9,6 +9,7 @@
     "db:migrate": "pnpm --filter @night-manager/database run db:migrate",
     "db:deploy": "pnpm --filter @night-manager/database run db:deploy",
     "db:seed": "pnpm --filter @night-manager/database run db:seed",
+    "roles:sync": "pnpm --filter @night-manager/database run roles:sync",
     "dev": "concurrently -n web,api,webhook,agent -c blue,green,magenta,yellow \"pnpm dev:web\" \"pnpm dev:api\" \"pnpm dev:webhook\" \"pnpm dev:agent\"",
     "dev:web": "pnpm --filter @night-manager/web-dashboard dev",
     "dev:api": "pnpm --filter @night-manager/api dev",
