@@ -1,7 +1,7 @@
-import { loadWebEnvironment } from "@night-manager/config";
+import { loadWebPublicEnvironment } from "@night-manager/config";
 import { loadRoleDefinition } from "@night-manager/role-loader";
 
-const env = loadWebEnvironment();
+const env = loadWebPublicEnvironment();
 const projectManagerRole = loadRoleDefinition("ai-project-manager");
 
 export default function HomePage() {

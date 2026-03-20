@@ -28,9 +28,12 @@ function loadRootEnvironmentFiles(): void {
 const booleanFromString = z.enum(["true", "false"]).transform((value) => value === "true");
 const portFromString = z.coerce.number().int().min(1).max(65535);
 
-const sharedEnvironmentSchema = z.object({
+const baseEnvironmentSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]),
-  LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]),
+  LOG_LEVEL: z.enum(["debug", "info", "warn", "error"])
+});
+
+const infrastructureEnvironmentSchema = baseEnvironmentSchema.extend({
   DATABASE_HOST: z.string().min(1),
   DATABASE_PORT: portFromString,
   DATABASE_NAME: z.string().min(1),
@@ -40,7 +43,10 @@ const sharedEnvironmentSchema = z.object({
   DATABASE_URL: z.string().min(1),
   REDIS_HOST: z.string().min(1),
   REDIS_PORT: portFromString,
-  REDIS_DB: z.coerce.number().int().min(0),
+  REDIS_DB: z.coerce.number().int().min(0)
+});
+
+const integrationEnvironmentSchema = baseEnvironmentSchema.extend({
   JWT_SECRET: z.string().min(1),
   GITHUB_APP_ID: z.string().min(1),
   GITHUB_APP_CLIENT_ID: z.string().min(1),
@@ -52,7 +58,7 @@ const sharedEnvironmentSchema = z.object({
   ANTHROPIC_API_KEY: z.string().min(1)
 });
 
-const webEnvironmentSchema = sharedEnvironmentSchema.extend({
+const webPublicEnvironmentSchema = baseEnvironmentSchema.extend({
   WEB_PORT: portFromString,
   NEXT_PUBLIC_APP_URL: z.string().url(),
   NEXT_PUBLIC_API_BASE_URL: z.string().url(),
@@ -60,17 +66,55 @@ const webEnvironmentSchema = sharedEnvironmentSchema.extend({
   NEXT_PUBLIC_WORKER_HEALTH_URL: z.string().url()
 });
 
-const apiEnvironmentSchema = sharedEnvironmentSchema.extend({
-  API_PORT: portFromString
+const webEnvironmentSchema = webPublicEnvironmentSchema.extend({
+  DATABASE_HOST: z.string().min(1),
+  DATABASE_PORT: portFromString,
+  DATABASE_NAME: z.string().min(1),
+  DATABASE_USER: z.string().min(1),
+  DATABASE_PASSWORD: z.string().min(1),
+  DATABASE_SSL: booleanFromString,
+  DATABASE_URL: z.string().min(1),
+  REDIS_HOST: z.string().min(1),
+  REDIS_PORT: portFromString,
+  REDIS_DB: z.coerce.number().int().min(0)
 });
 
-const webhookEnvironmentSchema = sharedEnvironmentSchema.extend({
-  GITHUB_WEBHOOK_PORT: portFromString
+const apiEnvironmentSchema = infrastructureEnvironmentSchema.extend({
+  API_PORT: portFromString,
+  JWT_SECRET: z.string().min(1),
+  GITHUB_APP_ID: z.string().min(1),
+  GITHUB_APP_CLIENT_ID: z.string().min(1),
+  GITHUB_APP_CLIENT_SECRET: z.string().min(1),
+  GITHUB_WEBHOOK_SECRET: z.string().min(1),
+  AI_PROVIDER: z.string().min(1),
+  AI_PROVIDER_API_KEY: z.string().min(1),
+  OPENAI_API_KEY: z.string().min(1),
+  ANTHROPIC_API_KEY: z.string().min(1)
 });
 
-const workerEnvironmentSchema = sharedEnvironmentSchema.extend({
+const webhookEnvironmentSchema = infrastructureEnvironmentSchema.extend({
+  GITHUB_WEBHOOK_PORT: portFromString,
+  JWT_SECRET: z.string().min(1),
+  GITHUB_APP_ID: z.string().min(1),
+  GITHUB_APP_CLIENT_ID: z.string().min(1),
+  GITHUB_APP_CLIENT_SECRET: z.string().min(1),
+  GITHUB_WEBHOOK_SECRET: z.string().min(1),
+  AI_PROVIDER: z.string().min(1),
+  AI_PROVIDER_API_KEY: z.string().min(1),
+  OPENAI_API_KEY: z.string().min(1),
+  ANTHROPIC_API_KEY: z.string().min(1)
+});
+
+const workerEnvironmentSchema = infrastructureEnvironmentSchema.extend({
   WORKER_HEALTH_PORT: portFromString,
-  WORKER_POLL_INTERVAL_MS: z.coerce.number().int().min(1000)
+  WORKER_POLL_INTERVAL_MS: z.coerce.number().int().min(1000),
+  JWT_SECRET: z.string().min(1),
+  GITHUB_APP_ID: z.string().min(1),
+  GITHUB_APP_CLIENT_ID: z.string().min(1),
+  GITHUB_APP_CLIENT_SECRET: z.string().min(1),
+  GITHUB_WEBHOOK_SECRET: z.string().min(1),
+  AI_PROVIDER: z.string().min(1),
+  AI_PROVIDER_API_KEY: z.string().min(1)
 });
 
 function parseEnvironment<TSchema extends z.ZodTypeAny>(schema: TSchema): z.infer<TSchema> {
@@ -78,8 +122,27 @@ function parseEnvironment<TSchema extends z.ZodTypeAny>(schema: TSchema): z.infe
   return schema.parse(process.env);
 }
 
+export function loadBaseEnvironment() {
+  return parseEnvironment(baseEnvironmentSchema);
+}
+
+export function loadInfrastructureEnvironment() {
+  return parseEnvironment(infrastructureEnvironmentSchema);
+}
+
+export function loadIntegrationEnvironment() {
+  return parseEnvironment(integrationEnvironmentSchema);
+}
+
 export function loadSharedEnvironment() {
-  return parseEnvironment(sharedEnvironmentSchema);
+  return {
+    ...loadInfrastructureEnvironment(),
+    ...loadIntegrationEnvironment()
+  };
+}
+
+export function loadWebPublicEnvironment() {
+  return parseEnvironment(webPublicEnvironmentSchema);
 }
 
 export function loadWebEnvironment() {

@@ -1,9 +1,9 @@
 import "./globals.css";
 import type { Metadata } from "next";
 import { AppShell } from "@night-manager/ui";
-import { loadWebEnvironment } from "@night-manager/config";
+import { loadWebPublicEnvironment } from "@night-manager/config";
 
-const env = loadWebEnvironment();
+const env = loadWebPublicEnvironment();
 
 export const metadata: Metadata = {
   title: "Night Manager",
